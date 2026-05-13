@@ -1,0 +1,1 @@
+touch ~/Desktop/securestack-inspector/scanner-worker/scanners/__init__.py
