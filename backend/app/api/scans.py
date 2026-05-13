@@ -25,6 +25,11 @@ from app.core.database import get_db
 from app.models.scan import Scan, ScanStatus
 from app.schemas.scan import ScanCreate, ScanResponse
 
+from app.models.finding import Finding, FindingType, Severity
+from app.schemas.finding import FindingResponse
+
+from typing import Optional
+
 logger = logging.getLogger(__name__)
 
 # The router gets mounted under /api in main.py, so paths here are relative.
@@ -128,3 +133,36 @@ def get_scan(scan_id: uuid.UUID, db: Session = Depends(get_db)):
             detail=f"Scan {scan_id} not found",
         )
     return scan
+
+
+@router.get("/{scan_id}/findings", response_model=list[FindingResponse])
+def list_findings(
+    scan_id: uuid.UUID,
+    finding_type: Optional[FindingType] = Query(default=None),
+    severity: Optional[Severity] = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """
+    List all findings for a scan, with optional filters.
+
+    Examples:
+      GET /api/scans/{id}/findings                          - all findings
+      GET /api/scans/{id}/findings?finding_type=dependency  - just deps
+      GET /api/scans/{id}/findings?severity=high            - just high-sev
+    """
+    # 404 if the parent scan doesn't exist - more useful than returning
+    # an empty list, which would look like "this scan has no findings"
+    scan_exists = db.query(Scan.id).filter(Scan.id == scan_id).first()
+    if scan_exists is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Scan {scan_id} not found",
+        )
+
+    query = db.query(Finding).filter(Finding.scan_id == scan_id)
+    if finding_type is not None:
+        query = query.filter(Finding.finding_type == finding_type)
+    if severity is not None:
+        query = query.filter(Finding.severity == severity)
+
+    return query.order_by(Finding.package_name).all()

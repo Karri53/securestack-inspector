@@ -20,6 +20,9 @@ from app.core.database import Base, engine
 # Importing models here ensures they get registered with Base.metadata
 # BEFORE we call create_all(). Without this import, SQLAlchemy doesn't
 # know the tables exist and silently creates nothing.
+
+# Import all models so they register with Base.metadata BEFORE create_all()
+from app.models import finding as finding_model  # noqa: F401
 from app.models import scan as scan_model  # noqa: F401
 
 logging.basicConfig(
