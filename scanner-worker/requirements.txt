@@ -1,0 +1,9 @@
+# scanner-worker/requirements.txt
+# Minimal deps for Phase 1 — just enough to connect to Redis and prove
+# the worker can boot. Phase 3 adds dependency parsers, Phase 4 adds
+# the Dockerfile linter, Phase 5 adds SBOM tooling.
+
+redis==5.0.8
+python-dotenv==1.0.1
+sqlalchemy==2.0.35
+psycopg2-binary==2.9.9

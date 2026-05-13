@@ -1,0 +1,137 @@
+# docker-compose.yml
+# ----------------------------------------------------------------------
+# This file orchestrates the entire SecureStack Inspector stack locally.
+# Five services, one command: `docker compose up --build`.
+#
+# The big picture: the frontend talks to the API over HTTP, the API
+# enqueues jobs in Redis, the scanner-worker picks them up and writes
+# results back to Postgres, and the frontend polls the API for status.
+# Nothing talks directly to anything else — that's the whole point of
+# a service-oriented architecture.
+# ----------------------------------------------------------------------
+
+services:
+  # ====================================================================
+  # FRONTEND — Next.js dashboard
+  # This is the only service users actually see. Everything else lives
+  # behind it on a private network.
+  # ====================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: securestack-frontend
+    env_file: .env
+    ports:
+      # host:container — visit http://localhost:3000 in your browser
+      - "3000:3000"
+    volumes:
+      # Bind-mount source so code edits hot-reload without rebuilding.
+      # The anonymous volume on /app/node_modules prevents the host's
+      # (nonexistent) node_modules from clobbering the container's.
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - api
+    networks:
+      - securestack-net
+
+  # ====================================================================
+  # API — FastAPI backend
+  # Handles all HTTP requests. Stateless by design — state lives in
+  # Postgres and Redis, never in the API container itself.
+  # ====================================================================
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: securestack-api
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      # Live-reload during development — edit code, uvicorn picks it up
+      - ./backend:/app
+    depends_on:
+      postgres:
+        # `condition: service_healthy` waits for Postgres's healthcheck
+        # to pass before starting the API. Without this, the API will
+        # crash on first DB query because Postgres isn't ready yet.
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - securestack-net
+
+  # ====================================================================
+  # SCANNER WORKER — runs the actual analyses
+  # Isolated on purpose: scanning untrusted code is risky, so it never
+  # touches the public-facing API. Worst case, this container gets
+  # compromised — the API stays safe.
+  # ====================================================================
+  scanner-worker:
+    build:
+      context: ./scanner-worker
+      dockerfile: Dockerfile
+    container_name: securestack-worker
+    env_file: .env
+    volumes:
+      - ./scanner-worker:/app
+      # Shared volume for cloned repos under analysis. The worker writes
+      # here; nothing else reads from it.
+      - scan-workspace:/workspace
+    depends_on:
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    networks:
+      - securestack-net
+
+  # ====================================================================
+  # POSTGRES — primary datastore for scan history and findings
+  # ====================================================================
+  postgres:
+    # Pinned major version. Using `latest` here would be ironic given
+    # our scanner will flag that exact mistake in other people's images.
+    image: postgres:16-alpine
+    container_name: securestack-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      # Named volume persists DB data across container restarts.
+      # Without this, every `docker compose down` would wipe the DB.
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # This is what `depends_on: condition: service_healthy` checks.
+      # pg_isready is the canonical "Postgres is ready" probe.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - securestack-net
+
+  # ====================================================================
+  # REDIS — job queue and short-lived cache
+  # ====================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: securestack-redis
+    networks:
+      - securestack-net
+
+# Named volumes managed by Docker (not bind mounts to your filesystem)
+volumes:
+  postgres-data:
+  scan-workspace:
+
+# Custom bridge network. Keeps inter-service traffic isolated from your
+# host network and gives us DNS — services can reach each other by name
+# (e.g. the API connects to `postgres:5432`, not an IP address).
+networks:
+  securestack-net:
+    driver: bridge

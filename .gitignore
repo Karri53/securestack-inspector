@@ -1,0 +1,50 @@
+# .gitignore — anything matched here will NEVER be committed to git.
+# This is the first line of defense against leaking secrets or bloating
+# the repo with junk that doesn't belong in version control.
+
+# ---- Python ----
+# Bytecode and cached imports — regenerated automatically, not source
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ---- Environment / Secrets ----
+# .env holds real passwords and API keys. If this ever gets committed,
+# rotate every credential immediately. .env.example is the safe template
+# that DOES get committed.
+.env
+.env.local
+*.env
+!.env.example
+
+# ---- Node / Next.js ----
+# node_modules is huge and machine-specific — always reinstall fresh
+node_modules/
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# ---- Editor / OS junk ----
+# Mac creates these everywhere; nobody else needs them
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# ---- Docker / Logs ----
+*.log
+
+# ---- Scan workspace ----
+# This is where the worker clones repos under analysis at runtime.
+# Never commit downloaded code — it's not ours and it changes constantly.
+/workspace/
+/scan-data/
+
+# ---- Python test/coverage artifacts ----
+.pytest_cache/
+.coverage
+htmlcov/

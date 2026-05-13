@@ -1,0 +1,36 @@
+/* frontend/app/globals.css */
+/* Tailwind directives + a handful of global utilities and base styles. */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Force dark mode globally. The whole design assumes dark backgrounds —
+   trying to do both adds complexity without much payoff for a tool like this. */
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background-color: theme("colors.ink.900");
+  color: theme("colors.ink.100");
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle radial gradient backdrop so the hero section doesn't look flat.
+   This is the kind of detail that separates "AI-generated" from "designer made it". */
+.hero-glow {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.15), transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.08), transparent 40%);
+}
+
+/* Grid pattern overlay — adds technical texture without being noisy */
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(138, 146, 173, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(138, 146, 173, 0.06) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
