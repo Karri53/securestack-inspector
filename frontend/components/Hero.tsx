@@ -3,6 +3,7 @@
 // The three pillars: clear name, clear value prop, clear call to action.
 
 import { ArrowRight, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 export default function Hero() {
   return (
@@ -35,10 +36,13 @@ export default function Hero() {
 
           {/* CTAs. Primary on the left, secondary on the right. */}
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <button className="group inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-500 to-brand-600 px-6 py-3 text-sm font-semibold text-ink-900 shadow-lg shadow-brand-500/25 transition-all hover:shadow-xl hover:shadow-brand-500/40 hover:-translate-y-0.5">
+            <Link
+              href="/dashboard"
+              className="group inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-500 to-brand-600 px-6 py-3 text-sm font-semibold text-ink-900 shadow-lg shadow-brand-500/25 transition-all hover:shadow-xl hover:shadow-brand-500/40 hover:-translate-y-0.5"
+            >
               Run your first scan
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            </button>
+            </Link>
             <a
               href="http://localhost:8000/docs"
               target="_blank"
